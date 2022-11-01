@@ -1,37 +1,58 @@
-import * as pulumi from "@pulumi/pulumi";
 import * as equinix_metal from "@pulumi/equinix-metal";
 import * as aws from "@pulumi/aws";
-// import * as gcp from "@pulumi/gcp";
-import * as gcp_dataproc from "@pulumi/google-native/dataproc";
 import * as gcp_compute from "@pulumi/gcp/compute";
-// import * as gcp_serviceaccount from "@pulumi/gcp/serviceaccount";
-import * as gcp_cloudrun from "@pulumi/gcp/cloudrun";
-// import {resources as az_resources, hdinsight as az_hdinsight} from "@pulumi/azure-native";
-// import * as az_hdinsight from "@pulumi/azure-native/hdinsight";
 import * as az_resources from "@pulumi/azure-native/resources";
 import * as az_aci from "@pulumi/azure-native/containerinstance";
-import { InlineProgramArgs, LocalWorkspace } from "@pulumi/pulumi/automation";
-// import fetch from "node-fetch-commonjs";
+import * as gcp_cloudrun from "@pulumi/gcp/cloudrun";
+// import * as gcp from "@pulumi/gcp";
+import * as rancher2 from "@pulumi/rancher2";
+import {factoryCustom} from "./factoryCustom"
 import { env } from 'process';
+const { spawn } = require('child_process')
 
-const imageNameIce = "registry.ice.ri.se/ai-center/streamlit:latest"
-// const imageNameAz = "hopsaks.azurecr.io/riseai/streamlit:latest"
-const imageNameAz1 = "hopsaks.azurecr.io/riseai/test2:latest"
-const imageNameAz2 = "hopsaks.azurecr.io/riseai/tf-jupyterlab:latest"
-const imageNameGcp1 = "europe-west4-docker.pkg.dev/test-35178/backabo/test2"
-const imageNameGcp2 = "europe-west4-docker.pkg.dev/test-35178/backabo/tf-jupyterlab"
+// this function returns different pulumi programs depending on arguments, for example
+// an Azure ACI container, or a Rancher Helm application
+export const createPulumiProgram = (selected, envName: string) => {
+    const service = selected.infra.type;
+    const provider = selected.infra.provider;
+    // call different orchlet factories according to service
+    switch(service) {
+        case 'machine':
+            return factoryMachine(provider, envName);
+        case 'container':
+            return factoryContainer(provider, envName);
+        case 'custom':
+            return async () => {};
+        default:
+            return async () => {};
+    }
+}
 
-const portNumber = 5051;
-const portNumber1 = 5051;
-const portNumber2 = 8888;
-const vcpu = 2;
+export const createCustomProgram = (selected, envName: string) => {
+    const service = selected.infra.type;
+    const provider = selected.infra.provider;
+    // call different orchlet factories according to service
+    switch(service) {
+        case 'custom':
+            return factoryCustom(provider, envName);
+        default:
+            return async () => {};
+        }
+}
 
-// the program components are generated in function factories, because later we want to generate different version depending on the provider
+// function factoryCustom(provider, envName) {
+//     switch(provider) {
+//         case 'gcp':
+//             return async () => {
+//                 spawn('node ../custom/training-text-custom.js', [], { shell: true, stdio: 'inherit' });
+//             }
+//     }
+// }
 
-function factoryMachine(provider: string) {
+function factoryMachine(provider: string, envName: string) {
     switch(provider) {
         case 'gcp':
-            return (instanceName: string) => {
+            return async () => {
                 const project = "test-35178";
                 const locationGcp = "europe-west4-a";
 
@@ -51,7 +72,7 @@ function factoryMachine(provider: string) {
                 });
 
                 // Create a Virtual Machine Instance
-                const computeInstance = new gcp_compute.Instance(instanceName, {
+                const computeInstance = new gcp_compute.Instance(envName, {
                     labels: {name: "t2a-2-8-ubuntu2204"},
                     machineType: "t2a-standard-2",
                     zone: locationGcp,
@@ -75,23 +96,64 @@ function factoryMachine(provider: string) {
                     envUrl: computeInstance.name // computeInstance.networkInterfaces.apply(ni => ni[0].accessConfigs[0].natIp)
                 };            
             } // end case gcp
-            case 'equinix':
-                return (instanceName: string) => {
-                    const project = "1236b848-19d1-48c6-8a12-04ddf3b38d47";
-                    const machine = new equinix_metal.Device(instanceName, {
-                        hostname: instanceName,
+            case 'equinix-metal':
+                // return async () => {
+                //     const projectId = "1236b848-19d1-48c6-8a12-04ddf3b38d47";
+                //     const userData = 
+                //     `#!/bin/bash
+                //     export DEBIAN_FRONTEND=noninteractive
+                //     apt-get update && apt-get upgrade -y
+                //     apt-get install wget -y
+                    
+                //     wget https://aka.ms/downloadazcopy-v10-linux
+                //     tar -xvf downloadazcopy-v10-linux
+                //     sudo cp ./azcopy_linux_amd64_*/azcopy /usr/bin/
+                //     sudo chmod 755 /usr/bin/azcopy `;
+                //     const machine = new equinix_metal.SpotMarketRequest(envName, {
+                //         projectId,
+                //         maxBidPrice: 0.6,
+                //         metro: "da",
+                //         devicesMin: 1,
+                //         devicesMax: 1,
+                //         instanceParameters: {
+                //             hostname: envName,
+                //             billingCycle: "hourly",
+                //             operatingSystem: "ubuntu_22_04",
+                //             plan: "c3.large.arm64",
+                //             userdata: userData
+                //         },
+                //     });
+                //     return {
+                //         // envUrl: machine.accessPublicIpv4 // computeInstance.networkInterfaces.apply(ni => ni[0].accessConfigs[0].natIp)
+                //     };            
+                // } // end case equinix
+                return async () => {
+                    const projectId = "1236b848-19d1-48c6-8a12-04ddf3b38d47";
+                    const userData = 
+                    `#!/bin/bash
+                    export DEBIAN_FRONTEND=noninteractive
+                    apt-get update && apt-get upgrade -y
+                    apt-get install wget -y
+                    
+                    wget https://aka.ms/downloadazcopy-v10-linux
+                    tar -xvf downloadazcopy-v10-linux
+                    sudo cp ./azcopy_linux_amd64_*/azcopy /usr/bin/
+                    sudo chmod 755 /usr/bin/azcopy `;
+                    const machine = new equinix_metal.Device(envName, {
+                        hostname: envName,
                         plan: "c3.large.arm64",
                         metro: "da",
                         operatingSystem: "ubuntu_22_04",
                         billingCycle: "hourly",
-                        projectId: project,
+                        projectId,
+                        userData
                     });
                     return {
                         envUrl: machine.accessPublicIpv4 // computeInstance.networkInterfaces.apply(ni => ni[0].accessConfigs[0].natIp)
                     };            
                 } // end case equinix
-                case 'aws':
-                return (instanceName: string) => {
+            case 'aws':
+                return async () => {
                     const size = "m6i.metal";     // t2.micro is available in the AWS free tier
                     const deployer0 = new aws.ec2.KeyPair("deployer0", {
                         publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBCu0s5YNk4iA/ONZP5CS549sz73VixHbJI2hCj2bcm3M8soYQJGfmHArSYWTPuf1vF24ltcF1n7ZUua4VLA9iajX5GZDkrl4MAeHTSSWtRBNPG2Ss/TqqMNnNjJswLELg40WqU/xB710VWy2Fov1vG9wOx9+iMd+ZlDq8W3Pk3InpTkWhysu3Inech/Y3kLFvJJNlNoSn7exLw53xTzOOAs5XIXMMCbQtG0dBmalU/arKLaPwHrg6klMcZodM2NtotOR6JcLtVIAnzJHwG5EFFX/s05/OWCLd+lFNagrSgQ/JlPdDW8nm/KS8gFGruaXGS2NpSgcbU2UibiH+l1VlTkpT3NRcTVNFq8fLfKt0k5wMOE5iAghRsQu0Nce1SEDcNubzg0VywkSlqxJJBqhibXu8FN6nZaF54DtOsCsHYIPROaq93jJ3OjKx77pWEb7aSXaexN0BhXjzMjEnTDtVw3ShMe5EZ4loiMEbpjbJRfMNvRn9bpSnx2X8hea+q+SNWoSD/nrjVm7W5eYw8LG/mOmFxWRxXPbR/vjqK+u7GyTpH2Z+cRLTi3UUmnzc8G6gal93ezw+b4VgxoWfgU8ncttsEOdI18bpzptcaswNr7HBeg/mURzuTq3kUDozKmoXEsIe/lMf3V64DdFde172AeBJSr5nOpeinRDXIRraIQ== eramkog",
@@ -153,12 +215,12 @@ function factoryMachine(provider: string) {
                         }],
                     });
                     
-                    const server = new aws.ec2.Instance(instanceName, {
+                    const server = new aws.ec2.Instance(envName, {
                         instanceType: size,
                         keyName: deployer0.id,
                         // keyName: deployer1.id,
                         tags: {
-                            name: instanceName,
+                            name: envName,
                         },
                         subnetId: mySubnet.id,
                         vpcSecurityGroupIds: [ group.id ], // reference the security group resource above
@@ -169,29 +231,38 @@ function factoryMachine(provider: string) {
                     };            
                 } // end case aws
             default:
-            return () => {}  
-    } // end switch
+            return async () => {}  
+    } // end switch factoryMachine
 
 }
 
-function factoryContainer(provider: string) {
+const factoryContainer = (provider, envName: string) => {
+    const images = {
+        'azure': 'hopsaks.azurecr.io/riseai/bench-lab-gpu:latest',
+        'ice': 'registry.ice.ri.se/ai-center/streamlit:latest',
+        'gcp': 'europe-west4-docker.pkg.dev/test-35178/backabo/tf-jupyterlab' 
+    };
+    // imageNameIce = "registry.ice.ri.se/ai-center/streamlit:latest"
+    // const imageName2 = "kormart/tf-jupyterlab:latest"
+    // const imageName2 = "tensorflow/tensorflow:1.12.0-gpu-py3"
+    // const imageName2 = "hopsaks.azurecr.io/riseai/bench-lab-gpu:latest"
+    // const imageNameAz = "hopsaks.azurecr.io/riseai/streamlit:latest"
+    // const imageNameGcp = "europe-west4-docker.pkg.dev/test-35178/backabo/tf-jupyterlab"
+    // const imageName2 = "docker.io/tensorflow/tensorflow:latest-gpu-jupyter"
+    const imageName = images[provider];
     switch(provider) {
         case 'gcp':
-
-            return (containerName: string) => {
-                const project = "test-35178";
-                const locationGcp = "europe-west4";
-                const containerName1 = containerName + "-1";
-                const containerName2 = containerName + "-2";
-                const instanceContainer1 = new gcp_cloudrun.Service(containerName1, {
-                    location: locationGcp,
+            return async () => {
+                const location='europe-west4';
+                const helloService = new gcp_cloudrun.Service("hello", {
+                    location,
                     template: {
                         spec: {
                             containers: [
-                                { image: imageNameGcp1,
-                                    ports: [{"containerPort": portNumber1}],
+                                { image: imageName,
+                                    ports: [{"containerPort": 8888}],
                                     resources: {
-                                        limits: {                                           
+                                        limits: {
                                             memory: "1Gi",
                                         },
                                     } 
@@ -200,60 +271,34 @@ function factoryContainer(provider: string) {
                         },
                     },
                 });
-                // const instanceContainer2 = new gcp_cloudrun.Service(containerName2, {
-                //     location: locationGcp,
-                //     template: {
-                //         spec: {
-                //             containers: [
-                //                 { image: imageNameGcp2,
-                //                     ports: [{"containerPort": portNumber2}],
-                //                     resources: {
-                //                         limits: {                                           
-                //                             memory: "1Gi",
-                //                         },
-                //                     } 
-                //                 }
-                //             ],
-                //         },
-                //     },
-                // });
-                const iamHello1 = new gcp_cloudrun.IamMember(containerName1, {
-                    service: instanceContainer1.name,
-                    location: locationGcp,
+                const iamHello = new gcp_cloudrun.IamMember("hello-everyone", {
+                    service: helloService.name,
+                    location,
                     role: "roles/run.invoker",
                     member: "allUsers",
                 });
-                // const iamHello2 = new gcp_cloudrun.IamMember(containerName2, {
-                //     service: instanceContainer2.name,
-                //     location: locationGcp,
-                //     role: "roles/run.invoker",
-                //     member: "allUsers",
-                // });
                 return {
-                    envUrl: instanceContainer1.statuses[0].url
+                    envUrl: helloService.statuses[0].url
                 };            
             }
-        
-
         case 'azure':
-
-            return async (containerName: string) => {
+            return async () => {
                 const resourceGroupNameBase="rise-ai-center-test";
                 const resourceGroupLocation="westeurope";
-    
+
                 const resourceGroup = new az_resources.ResourceGroup(resourceGroupNameBase, {
                     location: resourceGroupLocation,
                     // resourceGroupName: resourceGroupNameBase,
                 });
                 const containerGroup = new az_aci.ContainerGroup("containerGroup", {
-                    containerGroupName: "containerGroup"+containerName,
+                    containerGroupName: "containerGroup"+envName,
                     containers: [{
                         command: [],
                         environmentVariables: [],
-                        image: imageNameAz2,
-                        name: containerName,
+                        image: imageName,
+                        name: envName,
                         ports: [{
-                            port: portNumber2,
+                            port: 5051,
                         }],
                         resources: {
                             requests: {
@@ -273,6 +318,27 @@ function factoryContainer(provider: string) {
                             },
                         ],
                     }],
+                    // diagnostics: {
+                    //     logAnalytics: {
+                    //         logType: "ContainerInsights",
+                    //         metadata: {
+                    //             "test-key": "test-metadata-value",
+                    //         },
+                    //         workspaceId: "workspaceid",
+                    //         workspaceKey: "workspaceKey",
+                    //     },
+                    // },
+                    // dnsConfig: {
+                    //     nameServers: ["1.1.1.1"],
+                    //     options: "ndots:2",
+                    //     searchDomains: "cluster.local svc.cluster.local",
+                    // },
+                    // identity: {
+                    //     type: "SystemAssigned, UserAssigned",
+                    //     userAssignedIdentities: {
+                    //         "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myResourceGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/identity-name": {},
+                    //     },
+                    // },
                     imageRegistryCredentials: [
                         {
                             server: "hopsaks.azurecr.io",
@@ -281,9 +347,9 @@ function factoryContainer(provider: string) {
                     }
                     ],
                     ipAddress: {
-                        dnsNameLabel: containerName,
+                        dnsNameLabel: envName,
                         ports: [{
-                            port: portNumber2,
+                            port: 5051,
                             protocol: "TCP",
                         }],
                         type: "Public",
@@ -305,110 +371,57 @@ function factoryContainer(provider: string) {
                         },
                     ],
                 });
-    
+
                 return {
-                    // envIp: containerGroup.ipAddress.ip,
-                    envUrl: containerName + ".westeurope.azurecontainer.io"+portNumber+"/lab"
+                    envIp: containerGroup.ipAddress.ip,
+                    envUrl: envName + ".westeurope.azurecontainer.io:8888/lab"
                 };
-            } // end case azure
-            default:
-                return () => {}  
-    } // end switch
-} 
-
-
-function factorySparkJob() {
-    return (clusterName: pulumi.Output<string>) => {
-        const project = "test-35178";
-        const locationGcp = "europe-west4";
-        const jobName = "test-spark-job-01";
-        const mainPythonFileUri = "gs://dataproc-examples/pyspark/hello-world/hello-world.py"
-        let jobArgs : gcp_dataproc.v1.JobArgs = {project,  placement: {clusterName}, region: locationGcp, pysparkJob: {mainPythonFileUri}};
-        const myJob = new gcp_dataproc.v1.Job(jobName, jobArgs);
-    }
-} 
-
-const factorySparkCluster = () => {
-    return (clusterName: string, sparkJob: Function) => {
-        const project = "test-35178";
-        const locationGcp = "europe-west4";
-        const clusterArgsGcp : gcp_dataproc.v1.ClusterArgs = {
-            clusterName, 
-            project,
-            region: locationGcp, 
-            config: { 
-                // autoscalingConfig: autoscalingPolicyArgsGcp,
-                lifecycleConfig: {
-                    autoDeleteTtl: "600s",
-                },
-                masterConfig: {
-                    numInstances: 1,
-                    machineTypeUri: "n1-standard-2",
-                    diskConfig: {
-                        bootDiskSizeGb: 500,
-                    }
-                },
-                softwareConfig: {
-                    properties: {
-                        "dataproc:dataproc.allow.zero.workers": "true"
-                    },
-                },
+            }
+        case 'ice':
+            return async () => {
+                const myApp = new rancher2.App(envName, {
+                    name: envName,
+                    catalogName: "c-tmfxj:rise-charts" , 
+                    projectId: "c-tmfxj:p-rwjhj", 
+                    targetNamespace: "rise-ai-testns", 
+                    templateName: "jupyternode",
+                    answers: {
+                        "altjupyterhome": "true",
+                        "cmdscript": "",
+                        "dockerimage": imageName,
+                        "gitemail": "",
+                        "gitname": "",
+                        "gpu.amount": "1",
+                        "gpu.enable": "true",
+                        "gpu.type": "nvidia-gtx-2080ti",
+                        "homedir": "/home/jovyan",
+                        "nbcheck": "true",
+                        "odcaccess": "true",
+                        "pvcSize": "10Gi",
+                        "resourceLimits.cpu": "4000m",
+                        "resourceLimits.memory": "8Gi",
+                        "s3.access": "false",
+                        "sharedvolumes": "rise-ai-shared-vol",
+                        "sshaccess": "true",
+                        "sshinstall": "Install and start",
+                        "sshpubkey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBCu0s5YNk4iA/ONZP5CS549sz73VixHbJI2hCj2bcm3M8soYQJGfmHArSYWTPuf1vF24ltcF1n7ZUua4VLA9iajX5GZDkrl4MAeHTSSWtRBNPG2Ss/TqqMNnNjJswLELg40WqU/xB710VWy2Fov1vG9wOx9+iMd+ZlDq8W3Pk3InpTkWhysu3Inech/Y3kLFvJJNlNoSn7exLw53xTzOOAs5XIXMMCbQtG0dBmalU/arKLaPwHrg6klMcZodM2NtotOR6JcLtVIAnzJHwG5EFFX/s05/OWCLd+lFNagrSgQ/JlPdDW8nm/KS8gFGruaXGS2NpSgcbU2UibiH+l1VlTkpT3NRcTVNFq8fLfKt0k5wMOE5iAghRsQu0Nce1SEDcNubzg0VywkSlqxJJBqhibXu8FN6nZaF54DtOsCsHYIPROaq93jJ3OjKx77pWEb7aSXaexN0BhXjzMjEnTDtVw3ShMe5EZ4loiMEbpjbJRfMNvRn9bpSnx2X8hea+q+SNWoSD/nrjVm7W5eYw8LG/mOmFxWRxXPbR/vjqK+u7GyTpH2Z+cRLTi3UUmnzc8G6gal93ezw+b4VgxoWfgU8ncttsEOdI18bpzptcaswNr7HBeg/mURzuTq3kUDozKmoXEsIe/lMf3V64DdFde172AeBJSr5nOpeinRDXIRraIQ== martin.korling",
+                        "subdomain": envName + ".icedc.se",
+                        "token": "wdr5tywdr5ty"
+                        },
+                });
+                return { 
+                    envIp: myApp.description,
+                    envUrl: envName + ".icedc.se" 
+                };
                 
             }
-        };
-        const newSparkCluster = new gcp_dataproc.v1.Cluster(clusterName, clusterArgsGcp);
-        sparkJob(newSparkCluster.clusterName);
-    }
+        case 'test':
+            return async () => {
+                return {
+                    envUrl: envName + ".test.ai"
+                };
+            }
+        default:
+            console.log('***error: ' + 'infra selection unknown');
+    };
 }
-
-// set provider
-const provider = 'equinix';
-// const provider = 'aws';
-// const provider = 'gcp';
-// const provider = 'azure';
-const instanceName = "rise-eq-c3.arm64";
-
-// generate the component functions
-const sparkJob = factorySparkJob();
-const sparkCluster = factorySparkCluster();
-const container = factoryContainer(provider);
-const machine = factoryMachine(provider);
-
-// and now the program is composed from the components, with a continuation
-const program = async () => {
-    // sparkCluster(instanceName, sparkJob);
-    // container(instanceName);
-    machine(instanceName);
-}
-
-const args: InlineProgramArgs = {
-    stackName: instanceName,
-    projectName: "proj-test",
-    program
-};
-
-// re-write this to be a test program for creating and deleting resources and 
-// measuring successes/failures, times, 
-// 1. measure time elapsed for the pulumi up call to return
-// 2. measure time elapsed until the resource is reachable thru some means 
-// const probe = (url: string) => {
-// }
-
-const run = async () => {
-    const ws = await LocalWorkspace.create({workDir: "/Users/martinko/Code/pulumi-typescript-dev/test"});
-    const stack = await LocalWorkspace.createOrSelectStack(args);
-    console.info("***log: created/selected " + args.stackName);
-    const startTime = Date.now();
-    const upRes = await stack.up({ onOutput: console.info });
-    // await stack.destroy({onOutput: console.info});
-    const callReturnTime = ((Date.now() - startTime)/60000).toString(); // minutes
-    // console.log("***log: do we get here 1");
-    await ws.setConfig(args.stackName, "ns:callReturnTime", {value: callReturnTime});
-    // console.log("***log: do we get here 2", upRes.outputs.envUrl.value);
-    // wait until it's up, probing at upRes.outputs.envUrl.value
-    // let startupTime2 = 0;
-    const configOut = await ws.getAllConfig(args.stackName);
-    console.info("***log: final config data", configOut);
-}
-
-run().catch(err => console.log(err));

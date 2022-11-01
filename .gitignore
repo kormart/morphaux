@@ -5,6 +5,7 @@
 **/setup.sh
 
 # TS build
+**/hide
 **/bin
 
 # Logs
