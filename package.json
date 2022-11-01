@@ -1,0 +1,24 @@
+{
+    "name": "morphaux",
+    "scripts": {
+        "build": "tsc --diagnostics --incremental",
+        "serve": "node bin/index.js",
+        "start": "npm run serve",
+        "watch": "tsc -w --diagnostics --incremental"
+    },
+    "devDependencies": {
+        "@types/node": "^18",
+        "@types/node-fetch": "^2.6.1",
+        "process": "^0.11.10"
+    },
+    "dependencies": {
+        "@pulumi/equinix-metal": "^3.2.1",
+        "@pulumi/aws": "^5.19.0",
+        "@pulumi/azure-native": "^1.84.0",
+        "@pulumi/gcp": "^6.41.0",
+        "@pulumi/google-native": "^0.27.0",
+        "@pulumi/pulumi": "^3.45.0",
+        "@pulumi/rancher2": "^3.8.0",
+        "node-fetch": "^2.6.1"
+    }
+}
