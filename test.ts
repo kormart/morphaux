@@ -1,3 +1,4 @@
+import { InlineProgramArgs, LocalWorkspace } from "@pulumi/pulumi/automation";
 import { createPulumiProgram, createCustomProgram } from "./factory";
 import { env, argv} from 'process'
 
@@ -6,22 +7,21 @@ const args = argv.slice(2)
 console.log('Morphaux, run test with arguments: ', args);
 
 const upOrDown = args[0]
-if(not (upOrDown == 'up' || upOrDown == 'dn')) {
+if( !(upOrDown == 'up' || upOrDown == 'dn')) {
     throw new Error("Command must be either  up or dn")
 }
 
-const selection = args[1]
-
-const service = selected.infra.type
-const provider = selected.infra.provider
+const stackName = args[1]
+const provider = args[2]
+const service = args[3]
 
 const stackArgs: InlineProgramArgs = {
     stackName: stackName,
     projectName: "morphaux",
-    program: createPulumiProgram(selected, stackName)
+    program: createPulumiProgram(stackName, provider, service)
 };
 
-const customProgram = createCustomProgram(selected, stackName)
+const customProgram = createCustomProgram(stackName, provider, service)
 
 const run = async () => {
     const ws = await LocalWorkspace.create({workDir: env.PWD});

@@ -5,8 +5,16 @@ Test framework
 
 ## Dependencies
 
-morphaux % npm --version
-8.19.1
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
 
-morphaux % node --version
-v18.9.1
+    nvm install --lts
+
+    npm --version
+    8.11.0
+
+    node --version
+    v17.9.1
+
+    npm install
+
+    npm run build

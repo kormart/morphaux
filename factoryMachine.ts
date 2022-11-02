@@ -2,7 +2,8 @@ import * as az_resources from "@pulumi/azure-native/resources";
 import * as az_compute from "@pulumi/azure-native/compute";
 import * as equinix_metal from "@pulumi/equinix-metal";
 import * as aws from "@pulumi/aws";
-import * as gcp_compute from "@pulumi/gcp/compute";
+import * as gcp_compute from "@pulumi/google-native/compute/v1";
+// import * as gcp_compute from "@pulumi/gcp/compute";
 import { env } from 'process';
 
 export function factoryMachine(provider: string, envName: string) {
@@ -77,8 +78,8 @@ export function factoryMachine(provider: string, envName: string) {
                 const network = new gcp_compute.Network("network");
                 const computeFirewall = new gcp_compute.Firewall("firewall", {
                     network: network.name,
-                    allows: [{
-                        protocol: "tcp",
+                    allowed: [{
+                        ipProtocol: "tcp",
                         ports: [ "22" ],
                     }],
                     sourceRanges: ["0.0.0.0/0"]
@@ -89,17 +90,19 @@ export function factoryMachine(provider: string, envName: string) {
                     labels: {name: "t2a-2-8-ubuntu2204"},
                     machineType: "t2a-standard-2",
                     zone: locationGcp,
-                    bootDisk: { initializeParams: { image: "ubuntu-2204-lts-arm64" } },
+                    disks: [
+                        { initializeParams: { sourceImage: "ubuntu-2204-lts-arm64" } },
+                    ],
                     networkInterfaces: [{
                         network: network.id,
                         // accessConfigus must includ a single empty config to request an ephemeral IP
                         accessConfigs: [{}],
                     }],
-                    metadata: {
-                        'ssh-keys': 'kormart:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBCu0s5YNk4iA/ONZP5CS549sz73VixHbJI2hCj2bcm3M8soYQJGfmHArSYWTPuf1vF24ltcF1n7ZUua4VLA9iajX5GZDkrl4MAeHTSSWtRBNPG2Ss/TqqMNnNjJswLELg40WqU/xB710VWy2Fov1vG9wOx9+iMd+ZlDq8W3Pk3InpTkWhysu3Inech/Y3kLFvJJNlNoSn7exLw53xTzOOAs5XIXMMCbQtG0dBmalU/arKLaPwHrg6klMcZodM2NtotOR6JcLtVIAnzJHwG5EFFX/s05/OWCLd+lFNagrSgQ/JlPdDW8nm/KS8gFGruaXGS2NpSgcbU2UibiH+l1VlTkpT3NRcTVNFq8fLfKt0k5wMOE5iAghRsQu0Nce1SEDcNubzg0VywkSlqxJJBqhibXu8FN6nZaF54DtOsCsHYIPROaq93jJ3OjKx77pWEb7aSXaexN0BhXjzMjEnTDtVw3ShMe5EZ4loiMEbpjbJRfMNvRn9bpSnx2X8hea+q+SNWoSD/nrjVm7W5eYw8LG/mOmFxWRxXPbR/vjqK+u7GyTpH2Z+cRLTi3UUmnzc8G6gal93ezw+b4VgxoWfgU8ncttsEOdI18bpzptcaswNr7HBeg/mURzuTq3kUDozKmoXEsIe/lMf3V64DdFde172AeBJSr5nOpeinRDXIRraIQ== kormart\n' +
-                        'bjorn:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDa66PjMNK/7k1QOdF8uwfQN7z6GziCKT8RvDd/C7NBi5j3KT+Alj9os1vDpv5b4Lm1qHJm66/REBQnCAUCpMi8/W9QvnCgerPfsK+rXJwhfs9mj8gehqO+Dt+ODTFWeURf1L7vEYiPzcneT1v8MTsEerjou/1x2Z88cq4ZKQLkw5PuqjHym0/CfbEnLF5rJg9rVAe5bgRqoH9n5ZSIjI8oKNRQbTF/V1n5YKLx8mqfq/MuY/7zuFxJDK9lqnysOn7jj1UGL/FFEjcGh6/3kq880obcBIM8/I8vxrqe0unQ8bkkmbue+SPmaHLzBd328B+myVcpIeZg9ox+J9JFpiJEby4yx4znJbtzCA9enrrQprBsFMibgxQPKacH2z5AzuXO0BlrU8mWS1sxo4z/tO/uZ2dGUcrX/qCRrzBORrQG2V2JACzbVFX5V5jes+3J00gBagZLNfMuUZu0rPGFVp1vl29IX0AJpynN4vWuusD3cUUlkX/kgZj7kqBXw2N8rri5QytvctFAYbd+3BmBmcMIZhCco1jkQKhSRZx/QOUh8wZ+N4crI7SaZLHrBDygzzTrAa97hWazmHeKPW+CJgMC/mMWSPz9+v8q6I4+4MZ4ty2KSKMFC0a/eZLMKr9N6p8z49elz7vEubZhRCxDpOjdp5eJH7JnueGr0sm8X9/F4Q== bjorn', 
-                        'enable-oslogin': 'FALSE'
-                    },
+                    // metadata: {
+                    //     'ssh-keys': 'kormart:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBCu0s5YNk4iA/ONZP5CS549sz73VixHbJI2hCj2bcm3M8soYQJGfmHArSYWTPuf1vF24ltcF1n7ZUua4VLA9iajX5GZDkrl4MAeHTSSWtRBNPG2Ss/TqqMNnNjJswLELg40WqU/xB710VWy2Fov1vG9wOx9+iMd+ZlDq8W3Pk3InpTkWhysu3Inech/Y3kLFvJJNlNoSn7exLw53xTzOOAs5XIXMMCbQtG0dBmalU/arKLaPwHrg6klMcZodM2NtotOR6JcLtVIAnzJHwG5EFFX/s05/OWCLd+lFNagrSgQ/JlPdDW8nm/KS8gFGruaXGS2NpSgcbU2UibiH+l1VlTkpT3NRcTVNFq8fLfKt0k5wMOE5iAghRsQu0Nce1SEDcNubzg0VywkSlqxJJBqhibXu8FN6nZaF54DtOsCsHYIPROaq93jJ3OjKx77pWEb7aSXaexN0BhXjzMjEnTDtVw3ShMe5EZ4loiMEbpjbJRfMNvRn9bpSnx2X8hea+q+SNWoSD/nrjVm7W5eYw8LG/mOmFxWRxXPbR/vjqK+u7GyTpH2Z+cRLTi3UUmnzc8G6gal93ezw+b4VgxoWfgU8ncttsEOdI18bpzptcaswNr7HBeg/mURzuTq3kUDozKmoXEsIe/lMf3V64DdFde172AeBJSr5nOpeinRDXIRraIQ== kormart\n' +
+                    //     'bjorn:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDa66PjMNK/7k1QOdF8uwfQN7z6GziCKT8RvDd/C7NBi5j3KT+Alj9os1vDpv5b4Lm1qHJm66/REBQnCAUCpMi8/W9QvnCgerPfsK+rXJwhfs9mj8gehqO+Dt+ODTFWeURf1L7vEYiPzcneT1v8MTsEerjou/1x2Z88cq4ZKQLkw5PuqjHym0/CfbEnLF5rJg9rVAe5bgRqoH9n5ZSIjI8oKNRQbTF/V1n5YKLx8mqfq/MuY/7zuFxJDK9lqnysOn7jj1UGL/FFEjcGh6/3kq880obcBIM8/I8vxrqe0unQ8bkkmbue+SPmaHLzBd328B+myVcpIeZg9ox+J9JFpiJEby4yx4znJbtzCA9enrrQprBsFMibgxQPKacH2z5AzuXO0BlrU8mWS1sxo4z/tO/uZ2dGUcrX/qCRrzBORrQG2V2JACzbVFX5V5jes+3J00gBagZLNfMuUZu0rPGFVp1vl29IX0AJpynN4vWuusD3cUUlkX/kgZj7kqBXw2N8rri5QytvctFAYbd+3BmBmcMIZhCco1jkQKhSRZx/QOUh8wZ+N4crI7SaZLHrBDygzzTrAa97hWazmHeKPW+CJgMC/mMWSPz9+v8q6I4+4MZ4ty2KSKMFC0a/eZLMKr9N6p8z49elz7vEubZhRCxDpOjdp5eJH7JnueGr0sm8X9/F4Q== bjorn', 
+                    //     'enable-oslogin': 'FALSE'
+                    // },
                     // serviceAccount: {
                     //       email: "565432897551-compute@developer.gserviceaccount.com",
                     //       scopes: ["cloud-platform"]

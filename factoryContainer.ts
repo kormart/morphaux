@@ -1,10 +1,11 @@
 import * as az_resources from "@pulumi/azure-native/resources";
 import * as az_aci from "@pulumi/azure-native/containerinstance";
-import * as gcp_cloudrun from "@pulumi/gcp/cloudrun";
+import * as gcp_cloudrun from "@pulumi/google-native/run/v2";
+// import * as gcp_cloudrun from "@pulumi/gcp/cloudrun";
 import * as rancher2 from "@pulumi/rancher2";
 import { env } from 'process';
 
-export const factoryContainer = (provider, envName: string) => {
+export const factoryContainer = (provider: string, envName: string) => {
     const images = {
         'azure': 'hopsaks.azurecr.io/riseai/bench-lab-gpu:latest',
         'ice': 'registry.ice.ri.se/ai-center/streamlit:latest',
@@ -17,40 +18,41 @@ export const factoryContainer = (provider, envName: string) => {
     // const imageNameAz = "hopsaks.azurecr.io/riseai/streamlit:latest"
     // const imageNameGcp = "europe-west4-docker.pkg.dev/test-35178/backabo/tf-jupyterlab"
     // const imageName2 = "docker.io/tensorflow/tensorflow:latest-gpu-jupyter"
-    const imageName = images[provider];
+    // const imageName = images[provider];
     switch(provider) {
-        case 'gcp':
-            return async () => {
-                const location='europe-west4';
-                const helloService = new gcp_cloudrun.Service("hello", {
-                    location,
-                    template: {
-                        spec: {
-                            containers: [
-                                { image: imageName,
-                                    ports: [{"containerPort": 8888}],
-                                    resources: {
-                                        limits: {
-                                            memory: "1Gi",
-                                        },
-                                    } 
-                                }
-                            ],
-                        },
-                    },
-                });
-                const iamHello = new gcp_cloudrun.IamMember("hello-everyone", {
-                    service: helloService.name,
-                    location,
-                    role: "roles/run.invoker",
-                    member: "allUsers",
-                });
-                return {
-                    envUrl: helloService.statuses[0].url
-                };            
-            }
+        // case 'gcp':
+        //     return async () => {
+        //         const location='europe-west4';
+        //         const helloService = new gcp_cloudrun.Service("hello", {
+        //             location,
+        //             template: {
+        //                 spec: {
+        //                     containers: [
+        //                         { image: imageName,
+        //                             ports: [{"containerPort": 8888}],
+        //                             resources: {
+        //                                 limits: {
+        //                                     memory: "1Gi",
+        //                                 },
+        //                             } 
+        //                         }
+        //                     ],
+        //                 },
+        //             },
+        //         });
+        //         const iamHello = new gcp_cloudrun.IamMember("hello-everyone", {
+        //             service: helloService.name,
+        //             location,
+        //             role: "roles/run.invoker",
+        //             member: "allUsers",
+        //         });
+        //         return {
+        //             envUrl: helloService.statuses[0].url
+        //         };            
+        //     }
         case 'azure':
             return async () => {
+                const imageName = images['azure']
                 const resourceGroupNameBase="rise-ai-center-test";
                 const resourceGroupLocation="westeurope";
 
@@ -141,12 +143,13 @@ export const factoryContainer = (provider, envName: string) => {
                 });
 
                 return {
-                    envIp: containerGroup.ipAddress.ip,
+                    // envIp: containerGroup.ipAddress.ip,
                     envUrl: envName + ".westeurope.azurecontainer.io:8888/lab"
                 };
             }
         case 'ice':
             return async () => {
+                const imageName = images['ice']
                 const myApp = new rancher2.App(envName, {
                     name: envName,
                     catalogName: "c-tmfxj:rise-charts" , 
@@ -191,5 +194,6 @@ export const factoryContainer = (provider, envName: string) => {
             }
         default:
             console.log('***error: ' + 'infra selection unknown');
+            return async () => {} 
     };
 }

@@ -5,9 +5,9 @@ import { env } from 'process';
 
 // this function returns different pulumi programs depending on arguments, for example
 // an Azure ACI container, or a Rancher Helm application
-export const createPulumiProgram = (selected, envName: string) => {
-    const service = selected.infra.type;
-    const provider = selected.infra.provider;
+export const createPulumiProgram = (envName: string, provider: string, service: string) => {
+    // const service = selected.infra.type;
+    // const provider = selected.infra.provider;
     // call different orchlet factories according to service
     switch(service) {
         case 'machine':
@@ -21,9 +21,9 @@ export const createPulumiProgram = (selected, envName: string) => {
     }
 }
 
-export const createCustomProgram = (selected, envName: string) => {
-    const service = selected.infra.type;
-    const provider = selected.infra.provider;
+export const createCustomProgram = (envName: string, provider: string, service: string) => {
+    // const service = selected.infra.type;
+    // const provider = selected.infra.provider;
     // call different orchlet factories according to service
     switch(service) {
         case 'custom':

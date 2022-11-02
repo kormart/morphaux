@@ -1,6 +1,6 @@
 const {JobServiceClient} = require('@google-cloud/aiplatform');
 
-export function factoryCustom(provider, envName) {
+export function factoryCustom(provider: string, envName: string) {
     switch(provider) {
         case 'gcp':
             return async () => {
@@ -67,5 +67,7 @@ export function factoryCustom(provider, envName) {
                 createCustomJob();
                 
             }
+        default:
+            return async () => {};
     }
 }
