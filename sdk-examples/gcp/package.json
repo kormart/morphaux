@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@google-cloud/aiplatform": "^2.1.0"
+  }
+}

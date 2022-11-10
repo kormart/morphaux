@@ -18,3 +18,8 @@ Test framework
     npm install
 
     npm run build
+
+
+    curl -sSL https://get.pulumi.com | sh
+
+    pulumi login file://~

@@ -1,0 +1,9 @@
+dask
+gcsfs
+google
+google-cloud-bigquery
+google-cloud-bigquery-storage
+google-cloud-core
+google-cloud-storage
+pandas
+six
