@@ -2,6 +2,21 @@
 
 Test framework
 
+## Build
+
+    npm install
+    npm run build
+
+## Run
+
+Starting 
+
+    node bin/test.js up stackname provider service
+
+Deleting
+
+    node bin/test.js dn stackname provider service
+
 
 ## Dependencies
 
@@ -14,11 +29,6 @@ Test framework
 
     node --version
     v17.9.1
-
-    npm install
-
-    npm run build
-
 
     curl -sSL https://get.pulumi.com | sh
 
