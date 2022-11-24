@@ -8,7 +8,7 @@ console.log('Morphaux, run test with arguments: ', args);
 
 const upOrDown = args[0]
 if( !(upOrDown == 'up' || upOrDown == 'dn')) {
-    console.log("Error: Command must be either  up or dn")
+    console.log("Error: Command must be either up or dn")
     exit()
 }
 
